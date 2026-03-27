@@ -1,0 +1,260 @@
+// modules/ui/Turn9.js
+// ---------------------------------------------------------------------------
+// TURN 9 SCREEN — PRE-KILL PHASE
+// ---------------------------------------------------------------------------
+// Dit is de *laatste* strategische turn vóór Turn 10 lethal.
+// Functionaliteit:
+// • Laatste voorbereidingen voor lethal
+// • DON schuiven (DON buff)
+// • Elders optimaliseren
+// • Buff toggles
+// • Kill preview op basis van simulator
+// • Replay logging
+// • Navigatie naar Turn 10
+// ---------------------------------------------------------------------------
+
+import React from "https://esm.sh/react@18";
+import { IMUState, goto } from "../state.js";
+import { simulate } from "../sim.js";
+import { getAdvisorLine } from "../advisor.js";
+import { Turnflow } from "../turnflow.js";
+import { replayEvent } from "../replay.js";
+
+export default function Turn9() {
+
+  const advisor = getAdvisorLine();
+  const preview = simulate(); // kill-preview vóór turn 10
+
+  function next() {
+    replayEvent("Einde Turn 9 — Pre-Kill Phase");
+    Turnflow.goto(10); // Ga naar Turn 10 (Kill Window)
+  }
+
+  function addElder() {
+    IMUState.elders++;
+    replayEvent("Turn 9: Elder toegevoegd");
+  }
+
+  function incDon() {
+    IMUState.buffDon++;
+    replayEvent("Turn 9: DON buff +1000");
+  }
+
+  function decDon() {
+    if (IMUState.buffDon > 0) {
+      IMUState.buffDon--;
+      replayEvent("Turn 9: DON buff -1000");
+    }
+  }
+
+  function toggleJuPeter() {
+    IMUState.juPeterBuff = !IMUState.juPeterBuff;
+    replayEvent("Turn 9: Ju Peter buff toggled");
+  }
+
+  function toggleNusjuro() {
+    IMUState.nusjuroDebuff = !IMUState.nusjuroDebuff;
+    replayEvent("Turn 9: Nusjuro debuff toggled");
+  }
+
+  return React.createElement(
+    "div",
+    containerStyle(),
+    [
+
+      // HEADER
+      React.createElement("h2", { style: titleStyle() }, "Turn 9 — Pre-Kill Phase"),
+
+      // BOARD INFO
+      React.createElement(
+        "div",
+        infoBox(),
+        [
+          `Turn: ${IMUState.turn}`, React.createElement("br"),
+          `DON: ${IMUState.don}`, React.createElement("br"),
+          `Elders: ${IMUState.elders}`, React.createElement("br"),
+          `DON Buff: +${IMUState.buffDon * 1000}`, React.createElement("br"),
+          `Ju Peter buff: ${IMUState.juPeterBuff ? "✅ Actief" : "❌ Uit"}`, React.createElement("br"),
+          `Nusjuro debuff: ${IMUState.nusjuroDebuff ? "✅ Actief" : "❌ Uit"}`
+        ]
+      ),
+
+      // ELDER
+      React.createElement(
+        "button",
+        { style: actionBtn(), onClick: addElder },
+        "➕ Elder plaatsen"
+      ),
+
+      // BUFFS
+      React.createElement(
+        "button",
+        { style: toggleBtn(IMUState.juPeterBuff), onClick: toggleJuPeter },
+        IMUState.juPeterBuff ? "Ju Peter buff: ✅ Aan" : "Ju Peter buff: ❌ Uit"
+      ),
+
+      React.createElement(
+        "button",
+        { style: toggleBtn(IMUState.nusjuroDebuff), onClick: toggleNusjuro },
+        IMUState.nusjuroDebuff ? "Nusjuro debuff: ✅ Aan" : "Nusjuro debuff: ❌ Uit"
+      ),
+
+      // DON BUFF
+      React.createElement(
+        "div",
+        rowFlex(),
+        [
+          React.createElement("button", { style: smallBtn(), onClick: decDon }, "−1000 DON"),
+          React.createElement("button", { style: smallBtn(), onClick: incDon }, "+1000 DON")
+        ]
+      ),
+
+      // ADVISOR
+      React.createElement(
+        "div",
+        advisorBox(),
+        [
+          React.createElement("div", { style: advisorTitle() }, "🎯 Advisor:"),
+          advisor
+        ]
+      ),
+
+      // KILL PREVIEW
+      React.createElement(
+        "div",
+        previewBox(),
+        [
+          React.createElement("div", { key: "k1", style: previewTitle() }, "🔮 Kill‑preview:"),
+          preview.message
+        ]
+      ),
+
+      // NEXT BUTTON
+      React.createElement(
+        "button",
+        { style: nextBtn(), onClick: next },
+        "➡️ Ga naar Turn 10 (Kill Window)"
+      ),
+
+      // Dashboard
+      React.createElement(
+        "button",
+        { style: backBtn(), onClick: () => goto("dashboard") },
+        "⬅️ Dashboard"
+      )
+    ]
+  );
+}
+
+// ---------------------------------------------------------------------------
+// STYLES
+// ---------------------------------------------------------------------------
+
+const containerStyle = () => ({
+  display: "flex",
+  flexDirection: "column",
+  gap: "20px",
+  padding: "20px",
+  background: "#111",
+  color: "white",
+  borderRadius: "8px",
+  height: "100%",
+  overflowY: "auto"
+});
+
+const titleStyle = () => ({
+  fontSize: "24px",
+  textAlign: "center"
+});
+
+const infoBox = () => ({
+  background: "#222",
+  padding: "12px",
+  borderRadius: "6px",
+  fontSize: "14px",
+  lineHeight: "1.5"
+});
+
+const advisorBox = () => ({
+  background: "#003366",
+  padding: "12px",
+  borderRadius: "6px",
+  fontSize: "15px",
+  lineHeight: "1.4"
+});
+
+const advisorTitle = () => ({ fontWeight: "bold", marginBottom: "6px" });
+
+const previewBox = () => ({
+  background: "#440044",
+  padding: "12px",
+  borderRadius: "6px",
+  fontSize: "15px",
+  lineHeight: "1.4",
+  color: "#ffb3ff"
+});
+
+const previewTitle = () => ({
+  fontWeight: "bold",
+  marginBottom: "6px",
+  color: "#ff7aff"
+});
+
+const actionBtn = () => ({
+  padding: "12px",
+  background: "#008800",
+  color: "white",
+  borderRadius: "6px",
+  border: "none",
+  cursor: "pointer",
+  fontSize: "16px"
+});
+
+const toggleBtn = (active) => ({
+  padding: "12px",
+  background: active ? "#00aa00" : "#444",
+  color: "white",
+  border: "none",
+  borderRadius: "6px",
+  cursor: "pointer",
+  fontSize: "16px"
+});
+
+const smallBtn = () => ({
+  padding: "10px",
+  background: "#555",
+  borderRadius: "6px",
+  border: "none",
+  color: "white",
+  cursor: "pointer",
+  fontSize: "14px",
+  flex: 1
+});
+
+const rowFlex = () => ({
+  display: "flex",
+  gap: "10px",
+  justifyContent: "space-between"
+});
+
+const nextBtn = () => ({
+  padding: "14px",
+  background: "#0066ff",
+  color: "white",
+  borderRadius: "6px",
+  border: "none",
+  cursor: "pointer",
+  fontSize: "16px",
+  marginTop: "10px"
+});
+
+const backBtn = () => ({
+  padding: "12px",
+  background: "#333",
+  color: "white",
+  borderRadius: "6px",
+  border: "none",
+  cursor: "pointer",
+  fontSize: "16px",
+  marginTop: "10px"
+});
