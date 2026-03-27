@@ -1,0 +1,199 @@
+// modules/ui/KillResult.js
+// ---------------------------------------------------------------------------
+// KILL RESULT SCREEN (Variant C – Advanced IMU WebApp)
+// ---------------------------------------------------------------------------
+// Functionaliteit:
+// • Toont lethal of geen lethal
+// • Schade, swings, counters, blockers
+// • Replay logs (Turn10 simulatie)
+// • Knop naar Dashboard
+// • Knop om opnieuw te beginnen
+// ---------------------------------------------------------------------------
+
+import React from "https://esm.sh/react@18";
+import { IMUState, goto, resetSimulation } from "../state.js";
+import { simulate } from "../sim.js";
+import { formatReplayForUI } from "../replay.js";
+
+export default function KillResult() {
+
+  // Result is al berekend in Turn10, maar we simuleren opnieuw
+  // voor consistentie bij directe reload
+  const result = simulate();
+  const replayText = formatReplayForUI(IMUState.replayHistory.at(-1));
+
+  function backToDashboard() {
+    goto("dashboard");
+  }
+
+  function restart() {
+    resetSimulation();
+    goto("handSelect");
+  }
+
+  return React.createElement(
+    "div",
+    containerStyle(),
+    [
+
+      // HEADER ------------------------------------------------------
+      React.createElement(
+        "h2",
+        { style: titleStyle() },
+        "Kill Resultaat"
+      ),
+
+      // RESULT BOX --------------------------------------------------
+      React.createElement(
+        "div",
+        resultBox(result.lethal),
+        [
+          React.createElement(
+            "div",
+            { key: "ttl", style: resultTitle(result.lethal) },
+            result.lethal ? "✅ LETHAL BEHAALD!" : "❌ GEEN LETHAL"
+          ),
+          React.createElement(
+            "div",
+            { key: "msg", style: { marginTop: "6px", fontSize: "14px" } },
+            result.message
+          ),
+          React.createElement(
+            "div",
+            { key: "dmg", style: { marginTop: "6px", fontSize: "14px" } },
+            `Totale schade: ${result.damage}`
+          )
+        ]
+      ),
+
+      // SWING LOG ---------------------------------------------------
+      React.createElement(
+        "div",
+        logBox(),
+        [
+          React.createElement(
+            "div",
+            { key: "log-title", style: logTitle() },
+            "🌀 Swing Log (Turn 10)"
+          ),
+          ...IMUState.simLog.map((line, idx) =>
+            React.createElement("div", { key: idx, style: { padding: "4px 0" } }, `• ${line}`)
+          )
+        ]
+      ),
+
+      // REPLAY SUMMARY ----------------------------------------------
+      React.createElement(
+        "div",
+        replayBox(),
+        [
+          React.createElement(
+            "div",
+            { key: "rp-title", style: replayTitle() },
+            "📜 Replay Samenvatting"
+          ),
+          ...replayText.map((l, idx) =>
+            React.createElement("div", { key: idx, style: { padding: "4px 0" } }, l)
+          )
+        ]
+      ),
+
+      // BUTTONS -----------------------------------------------------
+      React.createElement(
+        "button",
+        { style: nextBtn(), onClick: () => restart() },
+        "🔁 Nieuwe simulatie"
+      ),
+
+      React.createElement(
+        "button",
+        { style: backBtn(), onClick: () => backToDashboard() },
+        "⬅️ Dashboard"
+      )
+    ]
+  );
+}
+
+// ---------------------------------------------------------------------------
+// STYLES
+// ---------------------------------------------------------------------------
+
+const containerStyle = () => ({
+  display: "flex",
+  flexDirection: "column",
+  gap: "20px",
+  padding: "20px",
+  background: "#111",
+  color: "white",
+  borderRadius: "8px",
+  height: "100%",
+  overflowY: "auto"
+});
+
+const titleStyle = () => ({
+  fontSize: "26px",
+  textAlign: "center",
+  marginBottom: "10px"
+});
+
+const resultBox = (lethal) => ({
+  background: lethal ? "#006600" : "#660000",
+  padding: "14px",
+  borderRadius: "6px",
+  textAlign: "center"
+});
+
+const resultTitle = (lethal) => ({
+  fontWeight: "bold",
+  fontSize: "20px",
+  color: lethal ? "#ccffcc" : "#ffcccc"
+});
+
+const logBox = () => ({
+  background: "#222",
+  padding: "12px",
+  borderRadius: "6px",
+  fontSize: "14px",
+  maxHeight: "240px",
+  overflowY: "auto"
+});
+
+const logTitle = () => ({
+  fontWeight: "bold",
+  marginBottom: "6px"
+});
+
+const replayBox = () => ({
+  background: "#333",
+  padding: "12px",
+  borderRadius: "6px",
+  fontSize: "14px",
+  maxHeight: "260px",
+  overflowY: "auto"
+});
+
+const replayTitle = () => ({
+  fontWeight: "bold",
+  marginBottom: "6px",
+  color: "#cceeff"
+});
+
+const nextBtn = () => ({
+  padding: "14px",
+  background: "#0066ff",
+  color: "white",
+  borderRadius: "6px",
+  border: "none",
+  cursor: "pointer",
+  fontSize: "16px"
+});
+
+const backBtn = () => ({
+  padding: "12px",
+  background: "#333",
+  color: "white",
+  borderRadius: "6px",
+  border: "none",
+  cursor: "pointer",
+  fontSize: "16px"
+});
