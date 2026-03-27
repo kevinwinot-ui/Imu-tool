@@ -1,0 +1,185 @@
+// modules/ui/Dashboard.js
+// ---------------------------------------------------------------------------
+// IMU DASHBOARD (Startscherm)
+// Variant C — Minimalistische UI
+//
+// Toont drie hoofdknoppen:
+//  • Profile Select
+//  • Deck Import
+//  • Start Simulation (pas actief als profiel gekozen is)
+//
+// En daarnaast: Settings, Statistics, Replay
+// ---------------------------------------------------------------------------
+
+import React from "https://esm.sh/react@18";
+import { IMUState, goto } from "../state.js";
+import { saveSettings, applyTheme } from "../settings.js";
+import { getScoreboard } from "../stats.js";
+
+export default function Dashboard() {
+
+  const canStart = !!IMUState.activeProfile;
+
+  const scoreboard = getScoreboard();
+
+  return React.createElement(
+    "div",
+    {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "20px",
+        padding: "20px",
+        background: "#111",
+        color: "white",
+        borderRadius: "8px"
+      }
+    },
+    [
+
+      // HEADER
+      React.createElement(
+        "h1",
+        { style: { fontSize: "28px", marginBottom: "10px", textAlign: "center" } },
+        "IMU Dashboard"
+      ),
+
+      // ACTIVE PROFILE
+      React.createElement(
+        "div",
+        { style: { textAlign: "center", fontSize: "14px", opacity: 0.8 } },
+        IMUState.activeProfile 
+          ? `Actief profiel: ${IMUState.activeProfile.name}`
+          : "Geen profiel geselecteerd"
+      ),
+
+      // BUTTON: PROFILE SELECT
+      React.createElement(
+        "button",
+        {
+          style: buttonStyle(),
+          onClick: () => goto("profileSelect")
+        },
+        "Profiel selecteren"
+      ),
+
+      // BUTTON: DECK IMPORT
+      React.createElement(
+        "button",
+        {
+          style: buttonStyle(),
+          onClick: () => goto("deckImport")
+        },
+        "Deck importeren"
+      ),
+
+      // BUTTON: START
+      React.createElement(
+        "button",
+        {
+          style: buttonStyle(!canStart),
+          disabled: !canStart,
+          onClick: () => {
+            if (canStart) goto("handSelect");
+          }
+        },
+        canStart ? "Start simulatie" : "Selecteer eerst een profiel"
+      ),
+
+      // SCOREBOARD (statistieken samenvatting)
+      React.createElement(
+        "div",
+        {
+          style: {
+            background: "#222",
+            padding: "12px",
+            borderRadius: "6px",
+            marginTop: "10px",
+            fontSize: "14px"
+          }
+        },
+        [
+          React.createElement("div", { key: "s1" }, `Simulaties: ${scoreboard.simulations}`),
+          React.createElement("div", { key: "s2" }, `Lethals: ${scoreboard.lethals}`),
+          React.createElement("div", { key: "s3" }, `Gem. damage: ${scoreboard.avgDamage}`),
+          React.createElement("div", { key: "s4" }, `Gem. turns: ${scoreboard.avgTurns}`),
+          React.createElement("div", { key: "s5" }, `Winrate (Lethal%): ${scoreboard.winrate}`)
+        ]
+      ),
+
+      // SETTINGS / STATS / REPLAY PANEL
+      React.createElement(
+        "div",
+        {
+          style: {
+            display: "flex",
+            gap: "10px",
+            justifyContent: "space-between",
+            marginTop: "15px"
+          }
+        },
+        [
+
+          React.createElement(
+            "button",
+            {
+              key: "settings",
+              style: smallButtonStyle(),
+              onClick: () => goto("settings")
+            },
+            "⚙️ Settings"
+          ),
+
+          React.createElement(
+            "button",
+            {
+              key: "stats",
+              style: smallButtonStyle(),
+              onClick: () => goto("stats")
+            },
+            "📊 Statistieken"
+          ),
+
+          React.createElement(
+            "button",
+            {
+              key: "replay",
+              style: smallButtonStyle(),
+              onClick: () => goto("replay")
+            },
+            "🔁 Replay"
+          )
+        ]
+      )
+    ]
+  );
+}
+
+// -----------------------------------------------------------
+// BUTTON STYLES
+// -----------------------------------------------------------
+
+function buttonStyle(disabled = false) {
+  return {
+    padding: "14px",
+    background: disabled ? "#444" : "#0066ff",
+    color: "white",
+    fontSize: "16px",
+    cursor: disabled ? "not-allowed" : "pointer",
+    border: "none",
+    borderRadius: "6px",
+    textAlign: "center"
+  };
+}
+
+function smallButtonStyle() {
+  return {
+    background: "#333",
+    color: "white",
+    border: "none",
+    borderRadius: "5px",
+    padding: "10px 12px",
+    cursor: "pointer",
+    fontSize: "13px"
+  };
+}
