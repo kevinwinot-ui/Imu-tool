@@ -1,0 +1,56 @@
+// modules/ui/Turn10.js
+// ---------------------------------------------------------------------------
+// TURN 10 SCREEN — KILL WINDOW (Variant C – Advanced)
+// ---------------------------------------------------------------------------
+// Functionaliteit:
+// • Toont volledige kill simulator output
+// • Damage, swings, hit/counter/block resultaten
+// • Visualisatie van lethal/not lethal
+// • Replay logging + finaliseren
+// • Doorlink naar KillResult.js
+// ---------------------------------------------------------------------------
+
+import React from "https://esm.sh/react@18";
+import { IMUState, goto } from "../state.js";
+import { simulate } from "../sim.js";
+import { getAdvisorLine } from "../advisor.js";
+import { finalizeReplay } from "../replay.js";
+import { replayEvent } from "../replay.js";
+
+export default function Turn10() {
+
+  // Voer simulatie uit
+  const result = simulate();
+  const advisor = getAdvisorLine();
+
+  // Replay logging
+  React.useEffect(() => {
+    replayEvent("Turn 10 — Kill Simulation uitgevoerd");
+    finalizeReplay(result);
+  }, []);
+
+  function goToResult() {
+    goto("killresult");
+  }
+
+  return React.createElement(
+    "div",
+    containerStyle(),
+    [
+
+      // HEADER ----------------------------------------------------
+      React.createElement(
+        "h2",
+        { style: titleStyle() },
+        "Turn 10 — Kill Window"
+      ),
+
+      // BOARD INFO ------------------------------------------------
+      React.createElement(
+        "div",
+        infoBox(),
+        [
+          `Turn: ${IMUState.turn}`, React.createElement("br"),
+          `DON: ${IMUState.don}`, React.createElement("br"),
+          `Elders: ${IMUState.elders}`, React.createElement("br"),
+          `DON Buff: +${IMUState.buffDon * 1000}`, React.createElement("br"),
