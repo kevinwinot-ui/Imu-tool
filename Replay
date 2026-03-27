@@ -1,0 +1,153 @@
+// modules/replay.js
+// ---------------------------------------------------------------------------
+// IMU REPLAY ENGINE (Variant C – Advanced)
+// ---------------------------------------------------------------------------
+// Houdt ALLE acties bij zodat de gebruiker:
+// • elke turn kan terugkijken
+// • keuzes kan analyseren
+// • kills kan herbekijken
+// • decks kan vergelijken
+//
+// Replay entries bevatten:
+// {
+//   timestamp,
+//   profile,
+//   matchup,
+//   deck,
+//   events: [
+//      { turn: 1, action: "Played Shalria" },
+//      { turn: 1, action: "Drew X" },
+//      { turn: 2, action: "Buffed DON +2" },
+//      { turn: 10, action: "LETHAL hit with 3 Elders" }
+//   ]
+// }
+// ---------------------------------------------------------------------------
+
+import { IMUState } from "./state.js";
+import { simulate } from "./sim.js";
+
+// Storage key for browser persistence
+const REPLAY_KEY = "imuReplayHistory";
+
+/**
+ * Load previous replays from localStorage
+ */
+export function loadReplays() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(REPLAY_KEY));
+    if (Array.isArray(saved)) {
+      IMUState.replayHistory = saved;
+    } else {
+      IMUState.replayHistory = [];
+    }
+  } catch {
+    IMUState.replayHistory = [];
+  }
+}
+
+/**
+ * Save replay history to disk
+ */
+export function saveReplays() {
+  try {
+    localStorage.setItem(REPLAY_KEY, JSON.stringify(IMUState.replayHistory));
+  } catch (err) {
+    console.warn("Kon replay niet opslaan:", err);
+  }
+}
+
+/**
+ * Start a new replay event list for this run
+ */
+export function startReplaySession() {
+  IMUState.currentReplay = {
+    timestamp: new Date().toISOString(),
+    profile: IMUState.activeProfile || "Geen profiel",
+    matchup: IMUState.matchup || "Onbekend",
+    deck: IMUState.deckParsed || [],
+    events: []
+  };
+}
+
+/**
+ * Record an event during the run
+ */
+export function replayEvent(actionText) {
+  if (!IMUState.currentReplay) startReplaySession();
+
+  IMUState.currentReplay.events.push({
+    turn: IMUState.turn,
+    action: actionText,
+    don: IMUState.don,
+    elders: IMUState.elders
+  });
+}
+
+/**
+ * Save the completed replay at the end
+ */
+export function finalizeReplay(lethalResult = null) {
+  if (!IMUState.currentReplay) return;
+
+  if (lethalResult) {
+    IMUState.currentReplay.lethal = lethalResult.lethal;
+    IMUState.currentReplay.damage = lethalResult.damage;
+    IMUState.currentReplay.message = lethalResult.message;
+  }
+
+  IMUState.replayHistory.push(IMUState.currentReplay);
+  saveReplays();
+  IMUState.currentReplay = null;
+}
+
+/**
+ * Clear ALL replays
+ */
+export function resetReplays() {
+  IMUState.replayHistory = [];
+  saveReplays();
+}
+
+/**
+ * Retrieve one replay by index (for UI player)
+ */
+export function getReplay(index) {
+  return IMUState.replayHistory[index] || null;
+}
+
+/**
+ * Convert a replay object into human‑friendly text
+ */
+export function formatReplayForUI(replay) {
+  if (!replay) return ["Geen replay gevonden."];
+
+  const lines = [];
+
+  lines.push(`Replay van ${new Date(replay.timestamp).toLocaleString()}`);
+  lines.push(`Profiel: ${replay.profile}`);
+  lines.push(`Matchup: ${replay.matchup}`);
+  lines.push("");
+  lines.push("Deck:");
+  replay.deck.forEach(c => {
+    lines.push(`  - ${c.count}x ${c.code} — ${c.name}`);
+  });
+  lines.push("");
+  lines.push("Events:");
+
+  replay.events.forEach(ev => {
+    lines.push(
+      `Turn ${ev.turn}: ${ev.action} (DON ${ev.don}, Elders ${ev.elders})`
+    );
+  });
+
+  if (replay.lethal !== undefined) {
+    lines.push("");
+    lines.push(
+      replay.lethal
+        ? `✅ Lethal achieved: ${replay.damage} damage`
+        : `❌ Geen lethal — schade: ${replay.damage}`
+    );
+  }
+
+  return lines;
+}
