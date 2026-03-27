@@ -1,0 +1,93 @@
+// modules/normalizer.js
+// -------------------------------------------------------------
+// IMU DECK NORMALIZER (Variant C – Advanced)
+// - Cleans, sorts, unifies deck rules
+// - Produces stable structure for importer & UI
+// -------------------------------------------------------------
+
+import { IMUState } from "./state.js";
+
+/**
+ * Normalize a single deck rule string.
+ * Input:  "4x OP13-079 — Saint Shalria"
+ * Output format object:
+ * {
+ *   count: 4,
+ *   code: "OP13-079",
+ *   name: "Saint Shalria"
+ * }
+ */
+export function normalizeEntry(line) {
+  // Match: "4x OP13-079 — Saint Shalria"
+  const m = line.match(/^(\d+)x\s+([A-Z]{2}\d{2}-\d{3})\s+—\s+(.+)$/);
+
+  if (!m) return null;
+
+  return {
+    count: parseInt(m[1]),
+    code: m[2],
+    name: m[3]
+  };
+}
+
+/**
+ * Convert normalized list of strings into structured JSON
+ */
+export function toStructuredDeck(lines) {
+  const structured = [];
+
+  for (let l of lines) {
+    const entry = normalizeEntry(l);
+    if (entry) structured.push(entry);
+  }
+
+  return structured;
+}
+
+/**
+ * Detect duplicate card entries and merge them
+ */
+export function mergeDuplicates(deckArray) {
+  const map = {};
+
+  for (let c of deckArray) {
+    if (!map[c.code]) {
+      map[c.code] = { ...c };
+    } else {
+      map[c.code].count += c.count;
+    }
+  }
+
+  return Object.values(map);
+}
+
+/**
+ * Sort deck by card code (stable, alphabetical)
+ */
+export function sortDeck(deckArray) {
+  return deckArray.sort((a, b) => {
+    if (a.code < b.code) return -1;
+    if (a.code > b.code) return 1;
+    return 0;
+  });
+}
+
+/**
+ * Main normalize function:
+ * Takes raw normalized strings from importer.js,
+ * transforms them into a fully structured, sorted deck object.
+ */
+export function finalizeDeck(normalizedLines) {
+  const structured = toStructuredDeck(normalizedLines);
+
+  // Merge "4x OP13-079" and "1x OP13-079" if both exist
+  const merged = mergeDuplicates(structured);
+
+  // Sorted alphabetical by code
+  const sorted = sortDeck(merged);
+
+  // Save inside global state
+  IMUState.deckParsed = sorted;
+
+  return sorted;
+}
