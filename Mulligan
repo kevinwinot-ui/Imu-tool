@@ -1,0 +1,51 @@
+// modules/ui/Mulligan.js
+// ---------------------------------------------------------------------------
+// MULLIGAN CONFIRMATION SCREEN (Variant C – Advanced)
+// ---------------------------------------------------------------------------
+// Functionaliteit:
+// • Laat opening hand zien
+// • Keuze: Houden → start simulatie
+// • Keuze: Mulligan → nieuwe hand selecteren
+// ---------------------------------------------------------------------------
+
+import React from "https://esm.sh/react@18";
+import { IMUState, goto } from "../state.js";
+import { startReplaySession } from "../replay.js";
+
+export default function Mulligan() {
+
+  const hand = IMUState.firstHand;
+
+  function keepHand() {
+    IMUState.activeHand = [...IMUState.firstHand];
+    IMUState.selectingFor = null;
+    startReplaySession(); // start replay
+    goto("turn1");
+  }
+
+  function doMulligan() {
+    IMUState.mulliganHand = [];
+    IMUState.selectingFor = "mulligan";
+    goto("handSelect");
+  }
+
+  return React.createElement(
+    "div",
+    {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "20px",
+        padding: "20px",
+        background: "#111",
+        color: "white",
+        borderRadius: "8px"
+      }
+    },
+    [
+
+      // HEADER
+      React.createElement(
+        "h2",
+        {
+          style: {
