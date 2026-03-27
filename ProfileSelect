@@ -1,0 +1,227 @@
+// modules/ui/ProfileSelect.js
+// ---------------------------------------------------------------------------
+// PROFILE SELECT SCREEN (Variant C – Advanced)
+// ---------------------------------------------------------------------------
+// Functionaliteit:
+// • Lijst van bestaande profielen tonen
+// • Nieuw profiel aanmaken
+// • Actief profiel selecteren
+// • Terug naar dashboard
+// ---------------------------------------------------------------------------
+
+import React from "https://esm.sh/react@18";
+import { IMUState, goto, saveProfiles } from "../state.js";
+
+export default function ProfileSelect() {
+  const [name, setName] = React.useState("");
+
+  function createProfile() {
+    const clean = name.trim();
+    if (!clean) return;
+
+    const newProfile = {
+      name: clean,
+      decklist: "",
+      matchup: null,
+      settings: {}
+    };
+
+    IMUState.profiles.push(newProfile);
+    saveProfiles();
+
+    setName("");
+  }
+
+  function selectProfile(p) {
+    IMUState.activeProfile = p;
+    goto("dashboard");
+  }
+
+  function deleteProfile(p) {
+    IMUState.profiles = IMUState.profiles.filter(x => x !== p);
+    saveProfiles();
+  }
+
+  return React.createElement(
+    "div",
+    {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "20px",
+        padding: "20px",
+        background: "#111",
+        color: "white",
+        borderRadius: "8px"
+      }
+    },
+    [
+
+      // HEADER
+      React.createElement(
+        "h2",
+        { style: { fontSize: "24px", textAlign: "center", marginBottom: "10px" } },
+        "Profiel Selectie"
+      ),
+
+      // NEW PROFILE INPUT
+      React.createElement(
+        "div",
+        { style: { display: "flex", gap: "10px" } },
+        [
+          React.createElement("input", {
+            key: "input",
+            value: name,
+            placeholder: "Nieuw profielnaam...",
+            onChange: (e) => setName(e.target.value),
+            style: {
+              padding: "10px",
+              flex: 1,
+              borderRadius: "6px",
+              border: "1px solid #333",
+              background: "#222",
+              color: "white"
+            }
+          }),
+          React.createElement(
+            "button",
+            {
+              key: "create-btn",
+              style: createBtnStyle(),
+              onClick: () => createProfile()
+            },
+            "Maak"
+          )
+        ]
+      ),
+
+      // PROFILE LIST
+      React.createElement(
+        "div",
+        { style: { background: "#222", borderRadius: "6px", padding: "10px" } },
+        [
+          React.createElement(
+            "h3",
+            { style: { marginBottom: "10px" } },
+            "Beschikbare Profielen"
+          ),
+
+          ...IMUState.profiles.map((p, i) =>
+            React.createElement(
+              "div",
+              {
+                key: `p-${i}`,
+                style: {
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "10px",
+                  borderBottom: "1px solid #333"
+                }
+              },
+              [
+                React.createElement(
+                  "span",
+                  { key: "name" },
+                  p.name
+                ),
+
+                React.createElement(
+                  "div",
+                  {
+                    key: "actions",
+                    style: { display: "flex", gap: "10px" }
+                  },
+                  [
+                    React.createElement(
+                      "button",
+                      {
+                        key: "sel",
+                        style: profileBtnStyle(),
+                        onClick: () => selectProfile(p)
+                      },
+                      "Selecteer"
+                    ),
+                    React.createElement(
+                      "button",
+                      {
+                        key: "del",
+                        style: deleteBtnStyle(),
+                        onClick: () => deleteProfile(p)
+                      },
+                      "Verwijder"
+                    )
+                  ]
+                )
+              ]
+            )
+          )
+        ]
+      ),
+
+      // BACK BUTTON
+      React.createElement(
+        "button",
+        {
+          style: backBtnStyle(),
+          onClick: () => goto("dashboard")
+        },
+        "⬅️ Terug naar Dashboard"
+      )
+    ]
+  );
+}
+
+// -----------------------------------------------------------
+// BUTTON STYLES
+// -----------------------------------------------------------
+
+function createBtnStyle() {
+  return {
+    padding: "10px 12px",
+    background: "#00aa00",
+    color: "white",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontSize: "14px"
+  };
+}
+
+function profileBtnStyle() {
+  return {
+    padding: "8px 12px",
+    background: "#0066ff",
+    color: "white",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontSize: "14px"
+  };
+}
+
+function deleteBtnStyle() {
+  return {
+    padding: "8px 12px",
+    background: "#aa0000",
+    color: "white",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontSize: "14px"
+  };
+}
+
+function backBtnStyle() {
+  return {
+    padding: "12px",
+    background: "#333",
+    color: "white",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontSize: "16px",
+    marginTop: "10px",
+    textAlign: "center"
+  };
+}
