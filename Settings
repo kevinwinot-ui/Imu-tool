@@ -1,79 +1,242 @@
-// modules/turnflow.js
+// modules/ui/Settings.js
 // ---------------------------------------------------------------------------
-// TURNFLOW ENGINE (Variant C – Advanced IMU WebApp)
+// SETTINGS SCREEN (Variant C – Advanced IMU WebApp)
 // ---------------------------------------------------------------------------
-// Dit bestand regelt de hele flow tussen turns in:
-// Turn 1  → mulligan / shalria push
-// Turn 2  → search / stall
-// Turn 3–4 → stabiliseren
-// Turn 5–7 → setup (elders + buffs)
-// Turn 10 → kill window (sim-engine)
+// Functionaliteit:
+// • Toggle advisor
+// • Toggle tracker
+// • Toggle beginner mode
+// • Toggle fast sim mode
+// • Thema-selectie (dark / light / auto)
+// • Auto-save decklists
+// • Directe opslag in localStorage
 // ---------------------------------------------------------------------------
 
-import { IMUState, goto, resetSimulation } from "./state.js";
-import { getAdvisorLine } from "./advisor.js";
-import { simulate } from "./sim.js";
+import React from "https://esm.sh/react@18";
+import { IMUState, goto } from "../state.js";
+import { toggleSetting, setSetting, saveSettings, applyTheme, resetSettings } from "../settings.js";
 
-/**
- * Core turn progression
- * In de IMU‑gameflow is elke turn een state‑change.
- */
-export function nextTurn() {
-  IMUState.turn++;
+export default function SettingsUI() {
 
-  // DON grows per turn (standaard +2 per turn)
-  IMUState.don += 2;
+  function changeTheme(e) {
+    setSetting("theme", e.target.value);
+    applyTheme();
+  }
 
-  // Automatische navigatie alleen als UI dit toestaat
-  if (IMUState.turn === 1) goto("turn1");
-  else if (IMUState.turn === 2) goto("turn2");
-  else if (IMUState.turn === 3 || IMUState.turn === 4) goto("turn34");
-  else if (IMUState.turn >= 5 && IMUState.turn <= 7) goto("turn57");
-  else if (IMUState.turn >= 10) goto("turn10");
+  return React.createElement(
+    "div",
+    containerStyle(),
+    [
+
+      // HEADER ----------------------------------------------------------
+      React.createElement(
+        "h2",
+        { style: titleStyle() },
+        "⚙️ Instellingen"
+      ),
+
+      // BEGINNER MODE ---------------------------------------------------
+      toggleBlock(
+        "Beginner modus",
+        "Legt advies extra duidelijk uit",
+        "beginnerMode"
+      ),
+
+      // SHOW ADVISOR ---------------------------------------------------
+      toggleBlock(
+        "Advisor tonen",
+        "Toont het advies-paneel tijdens turns",
+        "showAdvisor"
+      ),
+
+      // TRACKER PANEL --------------------------------------------------
+      toggleBlock(
+        "Tracker tonen",
+        "Toont een live overzicht van DON, turns en elders",
+        "showTracker"
+      ),
+
+      // FAST SIM -------------------------------------------------------
+      toggleBlock(
+        "Snelle simulatie",
+        "Optimaliseert de kill-simulator",
+        "fastSim"
+      ),
+
+      // THEME ----------------------------------------------------------
+      React.createElement(
+        "div",
+        {
+          style: blockStyle()
+        },
+        [
+          React.createElement("div", { key: "lbl" }, "🎨 Thema"),
+          React.createElement(
+            "select",
+            {
+              key: "sl",
+              value: IMUState.settings.theme,
+              onChange: changeTheme,
+              style: selectStyle()
+            },
+            [
+              React.createElement("option", { key: "dark", value: "dark" }, "Donker"),
+              React.createElement("option", { key: "light", value: "light" }, "Licht"),
+              React.createElement("option", { key: "auto", value: "auto" }, "Auto (OS)"),
+            ]
+          )
+        ]
+      ),
+
+      // AUTO SAVE ------------------------------------------------------
+      toggleBlock(
+        "Deck auto-opslaan",
+        "Slaat elke wijziging in decklists automatisch op",
+        "autoSaveDecks"
+      ),
+
+      // RESET BUTTON ---------------------------------------------------
+      React.createElement(
+        "button",
+        {
+          style: resetBtn(),
+          onClick: () => resetSettings()
+        },
+        "🔁 Reset instellingen"
+      ),
+
+      // BACK BUTTON ----------------------------------------------------
+      React.createElement(
+        "button",
+        {
+          style: backBtn(),
+          onClick: () => goto("dashboard")
+        },
+        "⬅️ Terug naar Dashboard"
+      )
+    ]
+  );
 }
 
-/**
- * Evaluate the current turn → produce structured info for UI.
- */
-export function evaluateTurn() {
-  const t = IMUState.turn;
+// ---------------------------------------------------------------------------
+// HELPER COMPONENTS
+// ---------------------------------------------------------------------------
 
+function toggleBlock(title, description, settingKey) {
+  return React.createElement(
+    "div",
+    { style: blockStyle() },
+    [
+      React.createElement(
+        "div",
+        { key: "title", style: { fontWeight: "bold" } },
+        title
+      ),
+
+      React.createElement(
+        "div",
+        { key: "desc", style: { fontSize: "12px", opacity: 0.8 } },
+        description
+      ),
+
+      React.createElement(
+        "button",
+        {
+          key: "btn",
+          style: toggleBtn(IMUState.settings[settingKey]),
+          onClick: () => toggleSetting(settingKey)
+        },
+        IMUState.settings[settingKey] ? "✅ Aan" : "❌ Uit"
+      )
+    ]
+  );
+}
+
+// ---------------------------------------------------------------------------
+// STYLES
+// ---------------------------------------------------------------------------
+
+function containerStyle() {
   return {
-    turn: t,
-    don: IMUState.don,
-    elders: IMUState.elders,
-    hand: IMUState.activeHand,
-    advisor: getAdvisorLine(),
-    killWindow: t >= 10
+    display: "flex",
+    flexDirection: "column",
+    gap: "18px",
+    padding: "20px",
+    background: "#111",
+    color: "white",
+    borderRadius: "8px",
+    height: "100%",
+    overflowY: "auto"
   };
 }
 
-/**
- * Jump to a specific turn (for UI buttons)
- */
-export function gotoTurn(t) {
-  IMUState.turn = t;
-
-  if (t === 1) goto("turn1");
-  else if (t === 2) goto("turn2");
-  else if (t === 3 || t === 4) goto("turn34");
-  else if (t >= 5 && t <= 7) goto("turn57");
-  else if (t >= 10) goto("turn10");
-  else goto("turnflow");
+function titleStyle() {
+  return {
+    fontSize: "26px",
+    textAlign: "center",
+    marginBottom: "8px"
+  };
 }
 
-/**
- * Start of simulation after hand / mulligan
- */
-export function startSimulation() {
-  resetSimulation();
-  goto("turn1");
+function blockStyle() {
+  return {
+    background: "#222",
+    padding: "12px",
+    borderRadius: "6px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px"
+  };
 }
 
-/**
- * Run kill simulation only in turn 10 window.
- */
-export function evaluateKill() {
-  if (IMUState.turn < 10) {
-    return {
-      error: true,
+function toggleBtn(active) {
+  return {
+    padding: "10px",
+    background: active ? "#00aa00" : "#444",
+    color: "white",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontSize: "14px",
+    marginTop: "6px",
+    width: "120px"
+  };
+}
+
+function selectStyle() {
+  return {
+    padding: "10px",
+    background: "#333",
+    border: "1px solid #444",
+    borderRadius: "6px",
+    color: "white",
+    cursor: "pointer",
+    fontSize: "14px",
+    width: "150px"
+  };
+}
+
+function resetBtn() {
+  return {
+    padding: "12px",
+    background: "#aa0000",
+    color: "white",
+    borderRadius: "6px",
+    border: "none",
+    cursor: "pointer",
+    fontSize: "16px",
+    marginTop: "10px"
+  };
+}
+
+function backBtn() {
+  return {
+    padding: "12px",
+    background: "#333",
+    color: "white",
+    borderRadius: "6px",
+    border: "none",
+    cursor: "pointer",
+    fontSize: "16px"
+  };
+}
